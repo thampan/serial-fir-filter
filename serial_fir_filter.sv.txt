@@ -1,0 +1,111 @@
+// Signed adder
+
+module signed_adder
+#(parameter WIDTH=16)
+(
+	input signed [WIDTH-1:0] dataa,
+	input signed [WIDTH-1:0] datab,
+	input cin,
+	output [WIDTH:0] result
+);
+
+	assign result = dataa + datab + cin;
+
+endmodule
+
+
+
+	
+// Quartus Prime Verilog Template
+// Signed multiply
+
+module signed_multiply
+#(parameter WIDTH=16)
+(
+	input signed [WIDTH-1:0] dataa,
+	input signed [WIDTH-1:0] datab,
+	output [2*WIDTH-1:0] dataout
+);
+
+	 assign dataout = dataa * datab;
+
+endmodule
+
+
+
+module serial_fir_filter(
+				input logic clk, input logic reset_n,
+				input logic signed[15:0] d,
+				//output reg signed[15:0] q
+				output logic signed[15:0] q
+			  );
+			  
+			  logic signed[15:0] delay[15:0];
+			  logic signed[31:0] prod;
+			  logic signed[15:0] sum;
+			  logic signed [16:0]temp_sum;
+			  
+			  logic signed [15:0] coefficients[15:0];
+			  
+			  			  logic signed[15:0] coe;
+			  
+			  assign coefficients[0] = 16'sb0000000011001011;
+			  assign coefficients[1] = 16'sb0000000101001000;
+			  assign coefficients[2] = 16'sb0000001010100011;
+			  assign coefficients[3] = 16'sb0000010011010111;
+			  assign coefficients[4] = 16'sb0000011110100100;
+			  assign coefficients[5] = 16'sb0000101010011100;
+			  assign coefficients[6] = 16'sb0000110101000011;
+			  assign coefficients[7] = 16'sb0000111100010100;
+			  assign coefficients[8] = 16'sb0000111110111000;
+			  assign coefficients[9] = 16'sb0000111100010100;
+			  assign coefficients[10] = 16'sb0000110101000011;
+			  assign coefficients[11] = 16'sb0000101010011100;
+			  assign coefficients[12] = 16'sb0000011110100100;
+			  assign coefficients[13] = 16'sb0000010011010111;
+			  assign coefficients[14] = 16'sb0000001010100011;
+			  assign coefficients[15] = 16'sb0000000101001000;
+			  
+			  integer i;
+			  always_ff@ (posedge clk)
+			  
+					if(reset_n == 1'b0)
+						for(i = 0; i <= 15; i = i + 1) begin:clear_fir
+							delay[i] <= 0;
+						end
+					
+					else
+						for(i = 0 ; i <= 15 ; i = i + 1) begin: shift_fir
+					
+							if (i == 0)
+								delay[i] = d;// Quartus Prime Verilog Template
+					
+							else
+								delay[i] <= delay[i-1];
+						end
+
+				
+			   always_ff@(posedge clk)
+			   for(i = 0; i <= 15; i = i+ 1) begin: mult
+					coe  <= coefficients[i];
+				end
+				
+				signed_multiply inst(.dataa(delay[15]),
+				                     .datab(coe),
+											.dataout(prod));
+				
+				signed_adder adder_fir (.dataa($signed(prod[30:15])),
+												.datab(q),
+												.cin(0),
+												.result(temp_sum));// Quartus Prime Verilog Template
+
+			 
+			always_ff@(posedge clk)
+					if(reset_n == 1'b0)
+					q <= 0;
+					else
+					q <= $signed(temp_sum[16:1]);
+
+endmodule
+				
+

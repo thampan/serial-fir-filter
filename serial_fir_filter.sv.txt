@@ -13,9 +13,6 @@ module signed_adder
 
 endmodule
 
-
-
-	
 // Quartus Prime Verilog Template
 // Signed multiply
 
@@ -31,18 +28,6 @@ module signed_multiply
 
 endmodule
 
-
-module coefficients_gen
-(
-	input logic  signed[15:0] dataa,
-	input clk,
-	output logic signed[15:0] dataout
-);
-
-always_ff@ (posedge clk)
-	dataout <= dataa;
-
-endmodule
 
 module register
 #(parameter WIDTH=16)
@@ -63,81 +48,58 @@ always_ff@ (posedge clk)
 endmodule
 
 
-module serial_fir_filter(
-				input logic clk, input logic reset_n,
-				input logic signed[15:0] d,
-				output logic signed[15:0] q
-			  );
+module serial_fir_filter
+#(parameter WIDTH=16)
+(
+	input logic clk, input logic reset_n,
+	input logic signed[WIDTH-1:0] d,
+	output logic signed[WIDTH-1:0] q
+);
 			  
-			  logic signed[15:0] delay[15:0];
-			  logic signed[31:0] prod;
-			  logic signed[15:0] sum;
-			  logic signed [16:0]temp_sum;
+logic signed[WIDTH-1:0] delay[WIDTH-1:0];
+logic signed[2*WIDTH-1:0] prod;
+logic signed[WIDTH:0] sum;
 			  
-			  logic signed [15:0] coefficients[15:0];
+logic signed [WIDTH-1:0] lut_rom[0:WIDTH-1];			  
+logic signed[WIDTH-1:0] coefficient;
 			  
-			  logic signed[15:0] coe;
+assign delay[0] = d;
+integer i = 0;
 			  
-			  assign delay[0] = d;
-			  
-			  /*initial
-					begin: lut_initalization
-					$readmemb("rom-data.txt", coefficients); 
-			  end*/
-			  
-			  assign coefficients[0] = 16'sb0000000011001011;
-			  assign coefficients[1] = 16'sb0000000101001000;
-			  assign coefficients[2] = 16'sb0000001010100011;
-			  assign coefficients[3] = 16'sb0000010011010111;
-			  assign coefficients[4] = 16'sb0000011110100100;
-			  assign coefficients[5] = 16'sb0000101010011100;
-			  assign coefficients[6] = 16'sb0000110101000011;
-			  assign coefficients[7] = 16'sb0000111100010100;
-			  assign coefficients[8] = 16'sb0000111110111000;
-			  assign coefficients[9] = 16'sb0000111100010100;
-			  assign coefficients[10] = 16'sb0000110101000011;
-			  assign coefficients[11] = 16'sb0000101010011100;
-			  assign coefficients[12] = 16'sb0000011110100100;
-			  assign coefficients[13] = 16'sb0000010011010111;
-			  assign coefficients[14] = 16'sb0000001010100011;
-			  assign coefficients[15] = 16'sb0000000101001000;
-			  
-			  integer i;
-			  genvar n;
-			  generate
-			  for(n=1; n<16; n= n+1)
-			  begin:generator
-			  register reg_inst0(.dataa(delay[n-1]),
-										.clk(clk),
-										.reset_n(reset_n),
-										.dataout(delay[n])
-								    );
-			  end
-			  endgenerate
-			 /*coefficients_gen c_inst(.dataa(coefficients[n-1]),
-											.clk(clk),
-											.dataout(coe)
-											);					 */
-			   always_ff@(posedge clk)
-			   for(i = 0; i <= 15; i = i+ 1) begin: mult
-					coe  <= coefficients[i];
-				end
+initial
+	begin: lut_initalization
+		$readmemb("C:/intelFPGA_lite/18.1/serial_fir_filter/rom-data.txt", lut_rom);
+	end
 					
-				signed_multiply inst(.dataa(delay[15]),
-				                     .datab(coe),
-											.dataout(prod));
+genvar n;
+generate
+	for(n = 1; n < WIDTH; n = n + 1)
+		begin:generator
+			register reg_inst0(.dataa(delay[n-1]),
+									 .clk(clk),
+									 .reset_n(reset_n),
+									 .dataout(delay[n]));
+		end
+endgenerate
+			 
+always_ff@(posedge clk)
+	for(i = 0; i <= WIDTH - 1; i = i+ 1)
+		begin: generate_address
+			coefficient  <= lut_rom[i];
+		end
+					
+signed_multiply inst(.dataa(delay[WIDTH-1]),
+				         .datab(coefficient),
+							.dataout(prod));
 				
-				signed_adder adder_fir (.dataa($signed(prod[30:15])),
-												.datab(q),
-												.cin(0),
-												.result(temp_sum));// Quartus Prime Verilog Template
+signed_adder adder_fir(.dataa($signed(prod[2 * WIDTH-2:WIDTH-1])),
+							  .datab(q),
+							  .cin(0),
+							  .result(sum));
 
-				register reg_inst1(.dataa($signed(temp_sum[16:1])),
-										.clk(clk),
-										.reset_n(reset_n),
-										.dataout(q)
-								    );
+register reg_inst1(.dataa($signed(sum[WIDTH:1])),
+						 .clk(clk),
+						 .reset_n(reset_n),
+						 .dataout(q));
 
 endmodule
-				
-

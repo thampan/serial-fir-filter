@@ -9,13 +9,13 @@ In this project we focus on the Serial Implementation of FIR Filter.
 
 ## Design:
 For a Serial FIR Filter we use the following elements:
-1. ###### Registers-N
+- ###### Registers-N
 For an N-tap Serial FIR filter we would need N registers which would delay the input signal and finally feed it to the multiplier unit.
-1. ###### LUT
+- ###### LUT
 The LUT would store the coefficients needed for multiplication. An additional pointer to traverse the LUT may be also required. The multiplier unit would fetch the required coefficient from the LUT using this pointer.
-1. ###### Multiplier
+- ###### Multiplier
 The serial implementation of an FIR filter requires at least 1 Multiplier unit. The Multiplier unit is used to multiply the delayed input from the Registers with the filter coefficients stored in the LUTs.
-1. ###### Accumulator
+- ###### Accumulator
 Finally we need an accumulator which would accumulate all the data after the multiplication together with the previous output samples. This module also forms the output of the Serial FIR Filter.
 
 ## Implementation:
@@ -24,7 +24,7 @@ Implemented using Matlab and System Verilog
 Here, we implement a 16- tap Serial FIR Low Pass filter. We use a dedicated register, multiplier -accumulator module to achieve this. We generate the coefficients required for the calculation purposes with the help of MATLAB in signed fixed point format and store it in a file – “rom-data.txt”. Now we would create a look-up table which would read these coefficients and store them during the init phase of the system.
 Initially we would delay the signal using a dedicated register and later multiply it using the coefficient pointed out by the look up table pointer. This pointer would be incremented in a cyclic fashion. Finally the result would be obtained by passing the signal thorough a multiply-accumulator unit. The previous output samples along with the output of the multiplier unit are accumulated and constitutes the output here. Also due to memory constraints we would be crunching the lower N bits of the multiplication result.
 
-##### Coefficient generation:
+##### Parameters for filter coefficient generation:
 ###### Sampling Frequency Used
 1kHz
 ###### Output Frequency
